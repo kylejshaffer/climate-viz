@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="index.css">
+    <script src="colorlegend.js"></script>
+    <script src="https://unpkg.com/d3@7"></script>
+    <script src="https://unpkg.com/topojson-client@3"></script>
+    <script src="https://unpkg.com/htl@0.3"></script>
+    <script src="https://unpkg.com/@observablehq/inputs@0.10"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js"></script>
+    <script src='https://unpkg.com/simple-statistics@7.8.3/dist/simple-statistics.min.js'></script>
+    <title>Average U.S. Temperature and Precipitation</title>
+</head>
+<body>
+    <div id="text-container">
+        <h1>Climate Viz</h1>
+        <h5>
+            Some explanation for what this is.
+        </h5>
+        <select name="month-selector" id="month-selector">
+            <option value="" selected>Select Month</option>
+            <option value="jan">January</option>
+            <option value="feb">February</option>
+            <option value="mar">March</option>
+            <option value="apr">April</option>
+            <option value="may">May</option>
+            <option value="june">June</option>
+            <option value="july">July</option>
+            <option value="aug">August</option>
+            <option value="sept">September</option>
+            <option value="oct">October</option>
+            <option value="nov">November</option>
+            <option value="dec">December</option>
+        </select>
+    </div>
+    <div style="display:flex; flex-direction:row; justify-content:center; width:100%; align-items:center;">
+        <div id="map"></div>
+        <div id="scatter"></div>
+        <div id="correlation"></div>
+    </div>
+    <script type="module">
+        class ScatterPlot {
+            constructor(initData, divID) {
+                this.initData = initData;
+                this.width = 928;
+                this.height = 600;
+                this.marginRight = 20;
+                this.marginTop = 25;
+                this.marginBottom = 35;
+                this.marginLeft = 40;
+                this.circleRadius = 6;
+
+                this.precipRange = d3.extent(this.initData, d => d.precipitation)
+                this.x = d3.scaleLinear()
+                    .domain([this.precipRange[0], 20]).nice()
+                    .range([this.marginLeft, this.width - this.marginRight]);
+                this.y = d3.scaleLinear()
+                    .domain(d3.extent(this.initData, d => d.temperature)).nice()
+                    .range([this.height - this.marginBottom, this.marginTop]);
+                this.svg = d3.select(divID).append("svg")
+                    .attr("width", this.width)
+                    .attr("height", this.height)
+                    .attr("viewBox", [0, 0, this.width, this.height])
+                    .attr("style", "max-width: 100%; height: auto;");
+                
+                this.linePath = this.svg.append("path")
+                    .attr('stroke', '#f7a444')
+                    .attr('fill', 'none')
+                    .attr('stroke-width', 4)
+                    .attr("stroke-dasharray", "3,5");
+                
+                this.drawAxesAndInitData();
+            }
+
+            drawAxesAndInitData() {
+                const filteredData = this.initData.filter((d) => d.month == "jan");
+                this.svg.append("g")
+                    .attr("transform", `translate(0,${this.height - this.marginBottom})`)
+                    .call(d3.axisBottom(this.x).ticks(this.width / 80))
+                    .call(g => g.select(".domain").remove())
+                    .call(g => g.append("text")
+                        .attr("x", this.width)
+                        .attr("y", this.marginBottom - 4)
+                        .attr("fill", "currentColor")
+                        .attr("text-anchor", "end")
+                        .text("Precipitation (inches) →"));
+
+                this.svg.append("g")
+                    .attr("transform", `translate(${this.marginLeft},0)`)
+                    .call(d3.axisLeft(this.y))
+                    .call(g => g.select(".domain").remove())
+                    .call(g => g.append("text")
+                        .attr("x", - this.marginLeft)
+                        .attr("y", 10)
+                        .attr("fill", "currentColor")
+                        .attr("text-anchor", "start")
+                        .text("↑ Temperature"));
+
+                this.svg.append("g")
+                    .attr("stroke", "currentColor")
+                    .attr("stroke-opacity", 0.1)
+                    .call(g => g.append("g")
+                        .selectAll("line")
+                        .data(this.x.ticks())
+                        .join("line")
+                        .attr("x1", d => 0.5 + this.x(d))
+                        .attr("x2", d => 0.5 + this.x(d))
+                        .attr("y1", this.marginTop)
+                        .attr("y2", this.height - this.marginBottom))
+                    .call(g => g.append("g")
+                        .selectAll("line")
+                        .data(this.y.ticks())
+                        .join("line")
+                            .attr("y1", d => 0.5 + this.y(d))
+                            .attr("y2", d => 0.5 + this.y(d))
+                            .attr("x1", this.marginLeft)
+                            .attr("x2", this.width - this.marginRight));
+
+                this.svg.append("g")
+                    .attr("stroke", "none")
+                    .attr("fill", "steelblue")
+                .selectAll("circle")
+                .data(filteredData)
+                .join("circle")
+                    .attr("cx", d => this.x(d.precipitation))
+                    .attr("cy", d => this.y(d.temperature))
+                    .attr("r", this.circleRadius)
+                    .attr("opacity", 0.35);
+
+                this.drawRegressionLine(filteredData);
+            }
+
+            drawRegressionLine(inputData) {
+                const line = d3.line().x(d => this.x(d.x)).y(d => this.y(d.y));
+                const precipRange = d3.extent(inputData, (d) => d.precipitation);
+                const linearRegression = ss.linearRegression(inputData.map(d => [d.precipitation, d.temperature]));
+                const linearRegressionLine = ss.linearRegressionLine(linearRegression);
+                const regressionPoints = [
+                    {x: precipRange[0], y: linearRegressionLine(precipRange[0])},
+                    {x: 20, y: linearRegressionLine(precipRange[1] <= 20 ? precipRange[1] : 20)},
+                ];
+                console.log(regressionPoints);
+
+                const corr = ss.sampleCorrelation(Array.from(inputData.map(d => d.precipitation)),
+                                                  Array.from(inputData.map(d => d.temperature))).toFixed(2);
+                d3.select("#correlation")
+                    .style("position", "relative")
+                    .text(`Correlation: ${corr}`);
+                
+                this.linePath
+                    .datum(regressionPoints)
+                    .transition()
+                    .duration(1000)
+                    .attr('d', line);
+            }
+
+            updateScatter(inputData) {
+                console.log("Calling updateScatter!");
+                this.svg.selectAll("circle")
+                    .data(inputData)
+                    .transition()
+                        .duration(1000)
+                    .attr("cx", d => this.x(d.precipitation))
+                    .attr("cy", d => this.y(d.temperature))
+
+                this.drawRegressionLine(inputData);
+            }
+        };
+
+        const projection = d3.geoAlbersUsa().scale(1280).translate([480, 300]);
+        const parseDate = d3.utcParse("%Y-%m-%d");
+
+        (async () => {
+            async function getClimateData(dataPath) {
+                const sentData = await d3.csv(dataPath, function(d) {
+                    return {
+                        ...d,
+                        year: +d.year,
+                        temperature: Number(d.temperature),
+                        precipitation: Number(d.precipitation),
+                        county_code: String(d.county_code),
+                    }
+                });
+                return sentData.filter(d => d.year === 2023);
+            }
+
+            function getCentroid(f) {
+                const path = d3.geoPath();
+                return path.centroid(f);
+            }
+
+            function processGeoData(geoData) {
+                const newGeoData = Object.create(geoData);
+                newGeoData.objects.states = {
+                    type: "GeometryCollection",
+                    geometries: newGeoData.objects.states.geometries.filter(d => d.id !== "02" && d.id !== "15")
+                }
+                return newGeoData;
+            }
+
+            async function getGeoData() {
+                const geoData = fetch("https://cdn.jsdelivr.net/npm/us-atlas@3/counties-albers-10m.json")
+                    .then(jsonData => jsonData.json())
+                    .then(data => processGeoData(data))
+
+                return geoData;
+            }
+
+            const getMeanTemp = (tempArray) => {
+                let total = 0;
+                for (let i=0; i < tempArray.length; i++) {
+                    total = total + tempArray[i];
+                }
+
+                return total / tempArray.length;
+            }
+            
+            const climateData = await getClimateData("./data/climate.csv");
+            const us = await getGeoData();
+            const countymap = new Map(climateData.map(d => [d.county_code, +d.temperature]));
+            const temps = Array.from(climateData.map(d => d.temperature));
+            console.log("Average temp:");
+            const meanTemp = getMeanTemp(temps);
+            console.log(meanTemp);
+            const extent = d3.extent(climateData, d => d.temperature);
+            console.log(extent);
+            const color = d3.scaleDiverging(d3.interpolateRdBu)
+                .domain([extent[1], meanTemp, extent[0]])
+                
+            const colorLegend = Legend(d3.scaleSequential([-0.1, 0.2], d3.interpolateReds), {
+                title: "Sentiment Index",
+            });
+            const path = d3.geoPath();
+
+            const svg = d3.select("#map").append("svg")
+                .attr("width", 975)
+                .attr("height", 610)
+                .attr("viewBox", [0, 0, 975, 610])
+                .attr("style", "max-width: 100%; height: auto;");
+            
+            // d3.select("#text-container").node().appendChild(colorLegend);
+
+            const countyMesh = svg.append("g")
+                .selectAll("path")
+                .data(topojson.feature(us, us.objects.counties).features)
+                .join("path")
+                    .attr("fill", "#d3d3d3")
+                    .attr("d", path);
+
+            svg.append("path")
+                .datum(topojson.mesh(us, us.objects.states, (a, b) => a !== b))
+                .attr("fill", "none")
+                .attr("stroke", "white")
+                .attr("stroke-linejoin", "round")
+                .attr("d", path);
+
+            const tooltip = d3.select("body")
+                .append("div")
+                .attr("class", "tooltip")
+                .style("opacity", 0);
+
+            const scatterplot = new ScatterPlot(climateData, "#scatter");
+            
+            const dropdown = document.getElementById("month-selector");
+            dropdown.addEventListener('change', function() {
+                let month = this.value;   
+                console.log("Selecting map for:");
+                console.log(month);          
+                let filteredData = climateData.filter(d => d.month === month);
+
+                console.log(filteredData);
+                countyMesh.data(filteredData)
+                    .transition()
+                    .duration(1000)
+                    .attr("fill", d => color(d.temperature));
+                scatterplot.updateScatter(filteredData);
+            })
+        })();
+    </script>
+</body>
+</html>
