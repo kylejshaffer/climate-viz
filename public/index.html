@@ -41,6 +41,7 @@
             <div id="scatter"></div>
         </div>
     </div>
+    <div id="timeline" style="display:flex; flex-direction:columns; justify-content:center; width:100%; align-items:center;"></div>
     <script type="module">
         class ScatterPlot {
             constructor(initData, divID) {
@@ -170,18 +171,72 @@
             }
         };
 
+        class LinePlot {
+            constructor(initData, divID) {
+                this.initData = initData;
+                this.width = 928;
+                this.height = 500;
+                this.marginTop = 20;
+                this.marginRight = 30;
+                this.marginBottom = 30;
+                this.marginLeft = 40;
+
+                this.x = d3.scaleUtc(d3.extent(this.initData, d => d.date), [this.marginLeft, this.width - this.marginRight]);
+                this.y = d3.scaleLinear([0, d3.max(this.initData, d => d.temperature)], [this.height - this.marginBottom, this.marginTop]);
+                this.line = d3.line()
+                    .x(d => this.x(d.date))
+                    .y(d => this.y(d.temperature));
+                this.svg = d3.select(divID)
+                    .attr("width", this.width)
+                    .attr("height", this.height)
+                    .attr("viewBox", [0, 0, this.width, this.height])
+                    .attr("style", "max-width: 100%; height: auto; height: intrinsic;");
+
+                // Add the x-axis.
+                this.svg.append("g")
+                    .attr("transform", `translate(0,${this.height - this.marginBottom})`)
+                    .call(d3.axisBottom(this.x).ticks(this.width / 80).tickSizeOuter(0));
+
+                // Add the y-axis, remove the domain line, add grid lines and a label.
+                this.svg.append("g")
+                    .attr("transform", `translate(${this.marginLeft},0)`)
+                    .call(d3.axisLeft(this.y).ticks(this.height / 40))
+                    .call(g => g.select(".domain").remove())
+                    .call(g => g.selectAll(".tick line").clone()
+                        .attr("x2", this.width - this.marginLeft - this.marginRight)
+                        .attr("stroke-opacity", 0.1))
+                    .call(g => g.append("text")
+                        .attr("x", -this.marginLeft)
+                        .attr("y", 10)
+                        .attr("fill", "currentColor")
+                        .attr("text-anchor", "start")
+                        .text("↑ Daily close ($)"));
+
+                // Append a path for the line.
+                this.svg.append("path")
+                    .attr("fill", "none")
+                    .attr("stroke", "steelblue")
+                    .attr("stroke-width", 1.5)
+                    .attr("d", this.line(this.initData));
+            }
+        }
+
         const projection = d3.geoAlbersUsa().scale(1280).translate([480, 300]);
         const parseDate = d3.utcParse("%Y-%m-%d");
 
         (async () => {
             async function getClimateData(dataPath) {
+                const parseTime = d3.utcParse("%B %d, %Y");
                 const sentData = await d3.csv(dataPath, function(d) {
+                    let stringDate = `${d.month.charAt(0).toUpperCase() + d.month.slice(1)} 01, ${d.year}`;
                     return {
                         ...d,
                         year: +d.year,
                         temperature: Number(d.temperature),
                         precipitation: Number(d.precipitation),
                         county_code: String(d.county_code),
+                        stringDate: stringDate,
+                        date: parseTime(stringDate),
                     }
                 });
                 return sentData.filter(d => d.year === 2023);
@@ -219,6 +274,7 @@
             }
             
             const climateData = await getClimateData("./data/climate.csv");
+            console.log(climateData);
             const us = await getGeoData();
             const countymap = new Map(climateData.map(d => [d.county_code, +d.temperature]));
             const temps = Array.from(climateData.map(d => d.temperature));
@@ -271,6 +327,7 @@
                 .style("opacity", 1);
 
             const scatterplot = new ScatterPlot(climateData, "#scatter");
+            const lineplot = new LinePlot(climateData, "#timeline");
             
             const dropdown = document.getElementById("month-selector");
             dropdown.addEventListener('change', function() {
