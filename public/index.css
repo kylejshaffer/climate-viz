@@ -11,6 +11,13 @@ body {
       monospace;
     color: #f7a444;
   }
+
+  rect {
+    pointer-events: all;
+    fill-opacity: 0;
+    stroke-opacity: 0;
+    z-index: 1;
+  }
   
   .tooltip {
     position: absolute;
