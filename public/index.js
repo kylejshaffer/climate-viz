@@ -54,7 +54,7 @@ const parseDate = d3.utcParse("%Y-%m-%d");
     d3.select("#text-container").node().appendChild(colorLegend);
 
     const scatterplot = new ScatterPlot(climateData, "#scatter");
-    const map = new Map(us, climateData, "#map");
+    const map = new Map(us, climateData, "#map", scatterplot);
     const lineplot = new LinePlot(climateData, "#timeline", scatterplot, map);
     
     const dropdown = document.getElementById("month-selector");

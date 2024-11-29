@@ -114,6 +114,23 @@ export class ScatterPlot {
             .attr('d', line);
     }
 
+    highlightDot(countyCode) {
+        this.svg.selectAll("circle")
+            .filter(d => d.county_code === countyCode)
+            .transition()
+            .duration(200)
+            .attr("r", 40)
+            .attr("fill", "red");
+    }
+
+    resetDotHighlight() {
+        this.svg.selectAll("circle")
+            .transition()
+            .duration(200)
+            .attr("r", this.circleRadius)
+            .attr("fill", "steelblue");
+    }
+
     updateScatter(filterDate) {
         const year = filterDate.getFullYear();
         const month = this.formatTime(filterDate).split(" ")[0];

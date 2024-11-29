@@ -1,7 +1,7 @@
 export class LinePlot {
     constructor(inputData, divID, scatterplot, map) {
         this.width = 928;
-        this.height = 250;
+        this.height = 100;
         this.marginTop = 20;
         this.marginRight = 30;
         this.marginBottom = 30;
@@ -9,7 +9,7 @@ export class LinePlot {
         // this.scatterplot = scatterplot;
         // this.map = map;
 
-        const tooltip = d3.select("body")
+        const tooltip = d3.select("#timeline")
                     .append("div")
                     .attr("class", "tooltip");
 
@@ -35,13 +35,12 @@ export class LinePlot {
         
         svg.append("g")
             .call(d3.axisLeft(y));
-        console.log("data call inside line chart");
-        console.log(initData);
+
         svg.append("path")
             .datum(initData)
             .attr("fill", "none")
             .attr("stroke", "steelblue")
-            .attr("stroke-width", 3)
+            .attr("stroke-width", 2)
             .attr("d", d3.line()
                 .x(function(d) { return x(d.date) })
                 .y(function(d) { return y(d.temperature) }));
@@ -80,9 +79,9 @@ export class LinePlot {
 
                 tooltip
                     .style("display", "block")
-                    .style("left", `${xPos + 100}px`)
-                    .style("top", `${yPos + 50}px`)
-                    .html(`<strong>Date:</strong> ${d.date.toLocaleDateString()}<br><strong>Temperature:</strong> ${d.temperature !== undefined ? (d.temperature).toFixed(2) : 'N/A'}`)
+                    .style("left", event.x + "px")
+                    .style("top", event.y - 100 + "px")
+                    .html(`<strong>Date:</strong> ${d.date.toLocaleDateString()}<br><strong>Temperature:</strong> ${d.temperature !== undefined ? (d.temperature).toFixed(2) + "\u00b0 F" : 'N/A'}`)
             })
             .on("mouseleave", function () {
                 circle.transition()

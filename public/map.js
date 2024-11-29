@@ -1,5 +1,5 @@
 export class Map {
-    constructor(us, initData, divID) {
+    constructor(us, initData, divID, scatterplot) {
         this.initData = initData;
         this.path = d3.geoPath();
         this.formatTime = d3.utcFormat("%B %d, %Y");
@@ -39,8 +39,13 @@ export class Map {
                     .html("County Code: " + d.county_code + "<br>" + "Temperature: " + d.temperature + "<br>" + "Precip: " + d.precipitation)
                     .style('left', e.x + "px")
                     .style('top', e.y + "px")
+                
+                scatterplot.highlightDot(d.county_code);
             })
-            .on("mouseleave", (e, d) => mapTooltip.style("opacity", 0));
+            .on("mouseleave", (e, d) => {
+                mapTooltip.style("opacity", 0)
+                scatterplot.resetDotHighlight();
+            });
     };
 
     updateMap(filterDate) {
