@@ -9,6 +9,7 @@ export class LinePlot {
         // this.scatterplot = scatterplot;
         // this.map = map;
 
+        const formatTime = d3.utcFormat("%B %d, %Y");
         const tooltip = d3.select("#timeline")
                     .append("div")
                     .attr("class", "tooltip");
@@ -94,7 +95,7 @@ export class LinePlot {
                 circle.transition()
                     .duration(500)
                     .attr("r", 15)
-                    .attr("fill", "red");
+                    .attr("fill", "brown");
 
                 const [xCoord] = d3.pointer(event, this);
                 const bisectDate = d3.bisector(d => d.date).left;
@@ -102,8 +103,11 @@ export class LinePlot {
                 const i = bisectDate(initData, x0, 1);
                 const d0 = initData[i - 1];
 
-                scatterplot.updateScatter(d0.date);
-                map.updateMap(d0.date);
+                const year = d0.date.getFullYear();
+                const month = formatTime(d0.date).split(" ")[0];
+                d3.select("#select-text").text(`Displaying Data for: ${month} ${year}`)
+                scatterplot.updateScatter(year, month);
+                map.updateMap(year, month);
             });
     };
 

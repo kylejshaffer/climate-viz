@@ -77,7 +77,7 @@ export class ScatterPlot {
                     .attr("x2", this.width - this.marginRight));
 
         this.svg.append("g")
-            .attr("stroke", "none")
+            .attr("stroke", "white")
             .attr("fill", "steelblue")
         .selectAll("circle")
         .data(filteredData)
@@ -109,6 +109,7 @@ export class ScatterPlot {
         
         this.linePath
             .datum(regressionPoints)
+            .raise()
             .transition()
             .duration(1000)
             .attr('d', line);
@@ -117,10 +118,13 @@ export class ScatterPlot {
     highlightDot(countyCode) {
         this.svg.selectAll("circle")
             .filter(d => d.county_code === countyCode)
+            .raise()
             .transition()
             .duration(200)
-            .attr("r", 40)
-            .attr("fill", "red");
+            .attr("r", 30)
+            .attr("fill", "#eff3ff")
+            .attr("stroke", "black")
+            .attr("opacity", 0.9);
     }
 
     resetDotHighlight() {
@@ -128,12 +132,11 @@ export class ScatterPlot {
             .transition()
             .duration(200)
             .attr("r", this.circleRadius)
+            .attr("stroke", "white")
             .attr("fill", "steelblue");
     }
 
-    updateScatter(filterDate) {
-        const year = filterDate.getFullYear();
-        const month = this.formatTime(filterDate).split(" ")[0];
+    updateScatter(year, month) {
         console.log(year);
         console.log(month);
         console.log("Calling updateScatter!");

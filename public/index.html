@@ -9,17 +9,23 @@
 <body>
     <div id="text-container">
         <h1>Climate Dashboard</h1>
-        <h5>
-            Some explanation for what this is.
-        </h5>
+        <p>
+            This dashboard allows users to query a dataset of average precipitation and<br/>
+            average temperature for the United States over a period from 2000 - 2024.<br/>
+            Hover over and click on the timeline to update the map and scatterplot. 
+        </p>
     </div>
-    <div id="timeline" style="width:100%; justify-content:center; align-items:center;"></div>
+    <div id="timeline" style="display:flex; width:100%; justify-content:center; align-items:center;"></div>
+    <div id="select-text"></div>
     <div style="display:flex; flex-direction:row; justify-content:center; width:100%; align-items:center;">
         <div id="map" style="width:60%;"></div>
         <div style="display:flex; flex-direction:column; justify-content:center; width:50%; align-items:center;">
             <div id="correlation"></div>
             <div id="scatter"></div>
         </div>
+    </div>
+    <div style="display:flex; justify-content:center; align-items:center;">
+        <div id="loader"></div>
     </div>
 
     <script src="colorlegend.js"></script>

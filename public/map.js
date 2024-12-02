@@ -33,7 +33,9 @@ export class Map {
             .join("path")
                 .attr("fill", "#d3d3d3")
                 .attr("d", this.path)
-            .on("mouseover", (e, d) => mapTooltip.style("opacity", 1))
+            .on("mouseover", (e, d) => {
+                mapTooltip.style("opacity", 1)
+            })
             .on("mousemove", (e, d) => {
                 mapTooltip
                     .html("County Code: " + d.county_code + "<br>" + "Temperature: " + d.temperature + "<br>" + "Precip: " + d.precipitation)
@@ -46,11 +48,11 @@ export class Map {
                 mapTooltip.style("opacity", 0)
                 scatterplot.resetDotHighlight();
             });
+
+        this.updateMap(2001, "January");
     };
 
-    updateMap(filterDate) {
-        const year = filterDate.getFullYear();
-        const month = this.formatTime(filterDate).split(" ")[0];
+    updateMap(year, month) {
         const filteredData = this.initData.filter((d) => d.month === month && d.year === year);
         this.countyMesh.data(filteredData)
             .transition()

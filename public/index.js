@@ -8,7 +8,7 @@ const parseDate = d3.utcParse("%Y-%m-%d");
 (async () => {
     async function getClimateData(dataPath) {
         const parseTime = d3.utcParse("%B %d, %Y");
-        const sentData = await d3.csv(dataPath, function(d) {
+        const climateData = await d3.csv(dataPath, function(d) {
             let stringDate = `${d.month} 10, ${d.year}`;
             return {
                 ...d,
@@ -20,7 +20,10 @@ const parseDate = d3.utcParse("%Y-%m-%d");
                 date: parseTime(stringDate),
             }
         });
-        return sentData;
+        const filteredData = climateData.filter(d => {
+            return !((d.month === "December" || d.month === "November") && d.year === 2024);
+        })
+        return filteredData;
     }
 
     function processGeoData(geoData) {
@@ -43,32 +46,17 @@ const parseDate = d3.utcParse("%Y-%m-%d");
     const climateData = await getClimateData("./data/climate.csv");
     console.log(climateData);
     const us = await getGeoData();
-    // const countymap = new Map(climateData.map(d => [d.county_code, +d.temperature]));
     const extent = d3.extent(climateData, d => d.temperature);
-    console.log(extent);
         
     const colorLegend = Legend(d3.scaleSequential([extent[1], extent[0]], d3.interpolateRdBu), {
-        title: "Temperature (fahrenheit)",
+        title: "Temperature (Fahrenheit)",
     });
 
     d3.select("#text-container").node().appendChild(colorLegend);
+    d3.select("#loader").remove();
+    d3.select("#select-text").text("Displaying Data for: January 2000");
 
     const scatterplot = new ScatterPlot(climateData, "#scatter");
     const map = new Map(us, climateData, "#map", scatterplot);
     const lineplot = new LinePlot(climateData, "#timeline", scatterplot, map);
-    
-    const dropdown = document.getElementById("month-selector");
-    dropdown.addEventListener('change', function() {
-        let month = this.value;   
-        console.log("Selecting map for:");
-        console.log(month);          
-        let filteredData = climateData.filter(d => d.month === month);
-
-        console.log(filteredData);
-        countyMesh.data(filteredData)
-            .transition()
-            .duration(1000)
-            .attr("fill", d => color(d.temperature));
-        scatterplot.updateScatter(filteredData);
-    })
 })();
